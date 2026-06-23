@@ -7,8 +7,8 @@
 ---
 
 ## 🌍 Live Demo
-👉 **[Open the Live App](https://your-link.streamlit.app)**  
-*(replace with your Streamlit link after deploying)*
+👉 **[Open the Live App](https://flower-shop-oop-cblq6e9upgbfmuxtmy2rgp.streamlit.app/)**  
+
 
 ---
 
