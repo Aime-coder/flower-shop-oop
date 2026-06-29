@@ -1,9 +1,7 @@
-# ============================================================
-#  🌸 AI FLOWER SHOP — OOP + AI + Streamlit
-#  Author  : Ndacyayisenga Parfait
-#  Course  : Object-Oriented Programming
-#  School  : University of Lodz
-# ============================================================
+# AI Flower Shop - OOP Project
+# Author  : Ndacyayisenga Parfait
+# Course  : Object-Oriented Programming
+# School  : University of Lodz
 
 import streamlit as st
 import os
@@ -12,21 +10,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ─────────────────────────────────────────────
-#  OOP CLASSES  (the entire backend)
-# ─────────────────────────────────────────────
 
+# BASE CLASS
 class Flower:
-    """Base class — encapsulation, constructors, methods."""
-    kingdom = "Plantae"
+    """Base class representing a flower. Demonstrates encapsulation and inheritance."""
+
+    kingdom = "Plantae"  # class variable shared by all flowers
 
     def __init__(self, name, color, petals, price, emoji, description):
-        self.name        = name
-        self.color       = color
-        self.petals      = petals
-        self.__price     = price   # private — encapsulation
-        self.emoji       = emoji
-        self.description = description
+        self.name         = name
+        self.color        = color
+        self.petals       = petals
+        self.__price      = price   # private attribute - encapsulation
+        self.emoji        = emoji
+        self.description  = description
         self._is_blooming = True
 
     def get_price(self):
@@ -37,25 +34,41 @@ class Flower:
             self.__price = new_price
 
     def special_feature(self):
+        """Base version - overridden by each child class (polymorphism)."""
         return f"{self.name} is a beautiful flower."
 
     def to_dict(self):
         return {
-            "name"       : self.name,
-            "color"      : self.color,
-            "petals"     : self.petals,
-            "price"      : self.__price,
-            "emoji"      : self.emoji,
-            "description": self.description,
-            "feature"    : self.special_feature(),
+            "name"        : self.name,
+            "color"       : self.color,
+            "petals"      : self.petals,
+            "price"       : self.__price,
+            "emoji"       : self.emoji,
+            "description" : self.description,
+            "feature"     : self.special_feature(),
         }
 
     def __str__(self):
         return f"{self.emoji} {self.name} ({self.color}) — ${self.__price:.2f}"
 
+    def __repr__(self):
+        return f"Flower(name={self.name}, color={self.color}, price={self.__price})"
+
+    def __eq__(self, other):
+        return isinstance(other, Flower) and self.name == other.name and self.color == other.color
+
+    def __lt__(self, other):
+        return self.__price < other.get_price()
+
+
+# CHILD CLASSES - each overrides special_feature() with genuinely different behavior
 
 class Rose(Flower):
-    """Child class — inherits Flower, adds has_thorns."""
+    """
+    Rose class - inherits from Flower.
+    special_feature() calculates a discount based on quantity ordered.
+    This is real polymorphism: different logic, not just a different string.
+    """
     def __init__(self, color, price, has_thorns=True):
         super().__init__(
             name        = "Rose",
@@ -67,13 +80,36 @@ class Rose(Flower):
         )
         self.has_thorns = has_thorns
 
-    def special_feature(self):
-        t = "has thorns" if self.has_thorns else "thornless"
-        return f"Roses are the symbol of love and romance — this one is {t}."
+    def special_feature(self, quantity=1):
+        """
+        Calculates a bulk discount based on quantity.
+        Buy 6+ roses: 10% off. Buy 12+: 20% off.
+        Different logic from Sunflower and Tulip.
+        """
+        price = self.get_price()
+        if quantity >= 12:
+            discount = 0.20
+        elif quantity >= 6:
+            discount = 0.10
+        else:
+            discount = 0.0
+
+        discounted = price * quantity * (1 - discount)
+        thorn_note = "with thorns" if self.has_thorns else "thornless variety"
+        if discount > 0:
+            return (f"Rose bulk discount: buy {quantity} and get {int(discount*100)}% off! "
+                    f"Total: ${discounted:.2f} instead of ${price * quantity:.2f}. "
+                    f"This is a {thorn_note}.")
+        return (f"No bulk discount yet — buy 6+ roses to save 10%, or 12+ to save 20%. "
+                f"This is a {thorn_note}.")
 
 
 class Sunflower(Flower):
-    """Child class — inherits Flower, adds height."""
+    """
+    Sunflower class - inherits from Flower.
+    special_feature() calculates how many days until the flower needs watering
+    based on its height (taller sunflowers need more water).
+    """
     def __init__(self, price, height_cm):
         super().__init__(
             name        = "Sunflower",
@@ -83,14 +119,37 @@ class Sunflower(Flower):
             emoji       = "🌻",
             description = f"A bright sunflower standing {height_cm}cm tall, always facing the sun."
         )
-        self.height_cm = height_cm
+        self.height_cm     = height_cm
+        self._last_watered = 0  # days since last watered
 
-    def special_feature(self):
-        return f"Sunflowers follow the sun (heliotropism) and grow up to {self.height_cm}cm tall!"
+    def special_feature(self, days_since_watered=0):
+        """
+        Calculates watering schedule based on height.
+        Taller sunflowers (>200cm) need water every 2 days.
+        Shorter ones every 3 days.
+        Returns a specific care action the user should take.
+        """
+        if self.height_cm > 200:
+            water_every = 2
+        else:
+            water_every = 3
+
+        days_until_water = max(0, water_every - days_since_watered)
+
+        if days_since_watered >= water_every:
+            return (f"⚠️ Water immediately! This {self.height_cm}cm sunflower is overdue. "
+                    f"Tall sunflowers need water every {water_every} days.")
+        return (f"Next watering in {days_until_water} day(s). "
+                f"At {self.height_cm}cm tall, this sunflower needs water every {water_every} days. "
+                f"Sunflowers follow the sun — place near a south-facing window.")
 
 
 class Tulip(Flower):
-    """Child class — inherits Flower, adds season."""
+    """
+    Tulip class - inherits from Flower.
+    special_feature() generates a personalized care schedule
+    based on the season the tulip blooms in.
+    """
     def __init__(self, color, price, season="Spring"):
         super().__init__(
             name        = "Tulip",
@@ -102,12 +161,41 @@ class Tulip(Flower):
         )
         self.season = season
 
-    def special_feature(self):
-        return f"Tulips bloom in {self.season} and originally came from Central Asia."
+    def special_feature(self, current_month=None):
+        """
+        Generates a care schedule based on the tulip's bloom season.
+        Spring tulips need cold storage now. Summer tulips need sun.
+        Completely different logic from Rose and Sunflower.
+        """
+        import datetime
+        if current_month is None:
+            current_month = datetime.datetime.now().month
+
+        season_months = {
+            "Spring" : [3, 4, 5],
+            "Summer" : [6, 7, 8],
+            "Autumn" : [9, 10, 11],
+            "Winter" : [12, 1, 2],
+        }
+
+        bloom_months = season_months.get(self.season, [3, 4, 5])
+
+        if current_month in bloom_months:
+            return (f"🌷 Perfect timing! {self.color} Tulips are in their bloom season ({self.season}). "
+                    f"Keep them in a bright spot and water every 2 days.")
+        else:
+            months_away = min((m - current_month) % 12 for m in bloom_months)
+            return (f"📅 {self.color} Tulips bloom in {self.season} — about {months_away} month(s) away. "
+                    f"Store bulbs in a cool dry place (5–10°C) until then. "
+                    f"Originally from Central Asia, they need a cold rest period.")
 
 
 class Lavender(Flower):
-    """Child class — inherits Flower, adds scent_level."""
+    """
+    Lavender class - inherits from Flower.
+    special_feature() calculates aromatherapy benefit score
+    based on scent level and suggests uses.
+    """
     def __init__(self, price, scent_level="Strong"):
         super().__init__(
             name        = "Lavender",
@@ -119,17 +207,35 @@ class Lavender(Flower):
         )
         self.scent_level = scent_level
 
-    def special_feature(self):
-        return f"Lavender has a {self.scent_level.lower()} calming scent used in aromatherapy."
+    def special_feature(self, room_size_sqm=20):
+        """
+        Calculates how many lavender plants are needed for a room
+        based on scent level and room size.
+        Returns a practical recommendation.
+        """
+        coverage = {"Strong": 15, "Mild": 8, "Light": 4}
+        sqm_per_plant = coverage.get(self.scent_level, 8)
+        plants_needed = max(1, round(room_size_sqm / sqm_per_plant))
+
+        uses = {
+            "Strong": "sleep aid, anxiety relief, and repelling insects",
+            "Mild"  : "light relaxation and room freshening",
+            "Light" : "subtle decoration and mild calming effect",
+        }
+        use_case = uses.get(self.scent_level, "general wellness")
+
+        return (f"{self.scent_level} scent lavender: you need about {plants_needed} plant(s) "
+                f"for a {room_size_sqm}sqm room. "
+                f"Best used for {use_case}. "
+                f"Lavender loves dry, well-drained soil — do not overwater!")
 
 
+# CART CLASS - demonstrates composition
 class Cart:
-    """
-    Cart class — manages items the user wants to buy.
-    Demonstrates: composition, list management, aggregation.
-    """
+    """Manages items the customer wants to buy. Uses composition with Flower objects."""
+
     def __init__(self):
-        self.items = []   # list of (Flower, quantity) tuples
+        self.items = []  # list of (Flower, quantity) tuples
 
     def add(self, flower, quantity=1):
         for i, (f, q) in enumerate(self.items):
@@ -154,11 +260,10 @@ class Cart:
         return len(self.items)
 
 
+# FLOWERSHOP CLASS - demonstrates class methods, static methods, composition
 class FlowerShop:
-    """
-    FlowerShop class — manages the full catalog.
-    Demonstrates: class methods, static methods, composition.
-    """
+    """Manages the full flower catalog. Demonstrates static and class methods."""
+
     def __init__(self, name, owner):
         self.name    = name
         self.owner   = owner
@@ -178,16 +283,18 @@ class FlowerShop:
 
     @staticmethod
     def care_tip(flower_name):
+        """Static method - does not need self or cls."""
         tips = {
-            "Rose"      : "💧 Water roses every 2 days and give them full sunlight.",
-            "Sunflower" : "☀️ Sunflowers need 6–8 hours of direct sun daily.",
-            "Tulip"     : "❄️ Tulip bulbs need a cold period before blooming.",
-            "Lavender"  : "🪨 Lavender loves dry, well-drained soil — don't overwater!",
+            "Rose"      : "Water roses every 2 days and give them full sunlight.",
+            "Sunflower" : "Sunflowers need 6-8 hours of direct sun daily.",
+            "Tulip"     : "Tulip bulbs need a cold period before blooming.",
+            "Lavender"  : "Lavender loves dry, well-drained soil — do not overwater!",
         }
-        return tips.get(flower_name, "🌱 Keep your flower watered and in good light.")
+        return tips.get(flower_name, "Keep your flower watered and in good light.")
 
     @classmethod
     def create_default_shop(cls):
+        """Class method - creates a shop instance without needing an existing one."""
         shop = cls("Parfait's Flower Shop", "Ndacyayisenga Parfait")
         shop.add_to_catalog(Rose("Red",    5.99, has_thorns=True))
         shop.add_to_catalog(Rose("White",  4.99, has_thorns=False))
@@ -202,10 +309,7 @@ class FlowerShop:
         return shop
 
 
-# ─────────────────────────────────────────────
-#  AI ASSISTANT  (OpenRouter)
-# ─────────────────────────────────────────────
-
+# AI ASSISTANT (secondary feature - OOP is the main focus)
 def get_ai_client():
     return OpenAI(
         base_url = "https://openrouter.ai/api/v1",
@@ -215,14 +319,11 @@ def get_ai_client():
 def ask_flower_ai(question, chat_history):
     client = get_ai_client()
     system = """You are Flora, an expert AI flower assistant for Parfait's Flower Shop.
-You help customers choose flowers, explain care tips, suggest bouquets for occasions,
-and answer any flower-related questions. Be warm, friendly, and knowledgeable.
-Keep answers concise (2–4 sentences). Use flower emojis occasionally."""
-
+Help customers choose flowers, explain care tips, and suggest bouquets.
+Be warm and friendly. Keep answers to 2-4 sentences. Use flower emojis occasionally."""
     messages = [{"role": "system", "content": system}]
     messages += chat_history
     messages.append({"role": "user", "content": question})
-
     response = client.chat.completions.create(
         model      = "openrouter/free",
         messages   = messages,
@@ -233,12 +334,10 @@ Keep answers concise (2–4 sentences). Use flower emojis occasionally."""
 def get_ai_bouquet(occasion, budget):
     client = get_ai_client()
     prompt = (f"Suggest a flower bouquet for '{occasion}' with a budget of ${budget:.2f}. "
-              f"Available flowers: Red Rose ($5.99), White Rose ($4.99), Pink Rose ($5.49), "
-              f"Sunflower ($3.50–$4.25), Purple Tulip ($2.99), Yellow Tulip ($3.25), "
-              f"Orange Tulip ($3.10), Lavender ($3.75–$4.50). "
-              f"Give a specific combination with quantities and explain why. Be concise.")
-    client2 = get_ai_client()
-    response = client2.chat.completions.create(
+              f"Available: Red Rose ($5.99), White Rose ($4.99), Pink Rose ($5.49), "
+              f"Sunflower ($3.50-$4.25), Purple/Yellow/Orange Tulip ($2.99-$3.25), "
+              f"Lavender ($3.75-$4.50). Give a specific combination with quantities. Be concise.")
+    response = client.chat.completions.create(
         model    = "openrouter/free",
         messages = [{"role": "user", "content": prompt}],
         max_tokens = 250
@@ -246,17 +345,15 @@ def get_ai_bouquet(occasion, budget):
     return response.choices[0].message.content
 
 
-# ─────────────────────────────────────────────
-#  STREAMLIT UI
-# ─────────────────────────────────────────────
+# STREAMLIT UI
 
 st.set_page_config(
-    page_title = "🌸 Parfait's Flower Shop",
+    page_title = "Parfait's Flower Shop",
     page_icon  = "🌸",
     layout     = "wide"
 )
 
-# ── Session state ─────────────────────────────
+# session state - keeps cart and chat alive across interactions
 if "shop"         not in st.session_state:
     st.session_state.shop = FlowerShop.create_default_shop()
 if "cart"         not in st.session_state:
@@ -267,7 +364,6 @@ if "chat_history" not in st.session_state:
 shop = st.session_state.shop
 cart = st.session_state.cart
 
-# ── Custom CSS ────────────────────────────────
 st.markdown("""
 <style>
     .main-header {
@@ -285,12 +381,6 @@ st.markdown("""
         margin: 8px 0;
         box-shadow: 0 2px 8px rgba(255,150,180,0.15);
     }
-    .cart-box {
-        background: #fff9fc;
-        border: 2px solid #ffb3c6;
-        border-radius: 12px;
-        padding: 15px;
-    }
     .oop-badge {
         background: #e8f4f8;
         border-left: 4px solid #4a90d9;
@@ -302,48 +392,41 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Header ────────────────────────────────────
 st.markdown("""
 <div class="main-header">
-    <h1>🌸 Parfait's AI Flower Shop 🌸</h1>
+    <h1>🌸 Parfait's Flower Shop 🌸</h1>
     <p style="color:#666; font-size:1.1em;">
-        Built with Python OOP + AI &nbsp;|&nbsp; University of Lodz OOP Project
-        &nbsp;|&nbsp; By Ndacyayisenga Parfait 🇷🇼
+        Python OOP Project &nbsp;|&nbsp; University of Lodz &nbsp;|&nbsp; Ndacyayisenga Parfait 🇷🇼
     </p>
 </div>
 """, unsafe_allow_html=True)
 
-# ── Tabs ──────────────────────────────────────
 tab1, tab2, tab3, tab4 = st.tabs([
     "🌺 Flower Shop",
     "🛒 My Cart",
-    "🤖 AI Flower Assistant",
+    "🤖 AI Assistant",
     "📚 OOP Concepts"
 ])
 
-
-# ════════════════════════════════════════════
-#  TAB 1 — SHOP
-# ════════════════════════════════════════════
+# TAB 1 - SHOP
 with tab1:
     st.subheader(f"🏪 {shop.name}  |  Owner: {shop.owner}")
-    st.caption(f"We have {len(shop.catalog)} beautiful flowers for you today!")
+    st.caption(f"We have {len(shop.catalog)} flowers available today!")
 
     col_left, col_right = st.columns([3, 1])
 
     with col_right:
         st.markdown("### 🔍 Filter")
-        flower_types = ["All"] + sorted(set(f.name for f in shop.catalog))
+        flower_types  = ["All"] + sorted(set(f.name for f in shop.catalog))
         selected_type = st.selectbox("Flower type", flower_types)
-
-        max_price = max(f.get_price() for f in shop.catalog)
-        price_range = st.slider("Max price ($)", 0.0, max_price + 1, max_price + 1)
+        max_price     = max(f.get_price() for f in shop.catalog)
+        price_range   = st.slider("Max price ($)", 0.0, max_price + 1, max_price + 1)
 
         st.markdown("---")
         st.markdown("### 📊 Shop Stats")
         st.metric("Total flowers",    len(shop.catalog))
-        st.metric("Cheapest",  f"${shop.get_cheapest().get_price():.2f}")
-        st.metric("Most expensive", f"${shop.get_most_expensive().get_price():.2f}")
+        st.metric("Cheapest",         f"${shop.get_cheapest().get_price():.2f}")
+        st.metric("Most expensive",   f"${shop.get_most_expensive().get_price():.2f}")
 
     with col_left:
         filtered = [
@@ -355,7 +438,6 @@ with tab1:
         if not filtered:
             st.info("No flowers match your filter.")
         else:
-            # Group by type for display
             groups = {}
             for f in filtered:
                 groups.setdefault(f.name, []).append(f)
@@ -363,14 +445,14 @@ with tab1:
             for flower_name, flowers in groups.items():
                 st.markdown(f"### {flowers[0].emoji} {flower_name}s")
                 cols = st.columns(min(len(flowers), 3))
+
                 for i, flower in enumerate(flowers):
                     with cols[i % 3]:
                         st.markdown(f"""
                         <div class="flower-card">
                             <h3 style="margin:0">{flower.emoji} {flower.color} {flower.name}</h3>
-                            <p style="color:#888; font-size:0.85em">{flower.description}</p>
-                            <p>🌿 {flower.petals} petals &nbsp;|&nbsp;
-                               🌍 {flower.kingdom}</p>
+                            <p style="color:#888;font-size:0.85em">{flower.description}</p>
+                            <p>🌿 {flower.petals} petals &nbsp;|&nbsp; 🌍 {flower.kingdom}</p>
                             <h4 style="color:#e75480">${flower.get_price():.2f}</h4>
                         </div>
                         """, unsafe_allow_html=True)
@@ -379,39 +461,42 @@ with tab1:
                             "Qty", min_value=1, max_value=20, value=1,
                             key=f"qty_{flower.name}_{flower.color}_{flower.get_price()}"
                         )
-                        if st.button(f"🛒 Add to Cart",
+                        if st.button("🛒 Add to Cart",
                                      key=f"add_{flower.name}_{flower.color}_{flower.get_price()}"):
                             cart.add(flower, qty)
                             st.success(f"Added {qty}× {flower.emoji} {flower.color} {flower.name}!")
 
                         with st.expander("💡 Care tip"):
                             st.write(FlowerShop.care_tip(flower.name))
-                        with st.expander("✨ Special feature"):
-                            st.write(flower.special_feature())
 
+                        with st.expander("✨ Special feature (polymorphism demo)"):
+                            # each flower class runs different logic here - that is polymorphism
+                            if isinstance(flower, Rose):
+                                st.write(flower.special_feature(quantity=qty))
+                            elif isinstance(flower, Sunflower):
+                                days = st.slider("Days since watered", 0, 5, 1,
+                                                 key=f"days_{flower.name}_{flower.get_price()}")
+                                st.write(flower.special_feature(days_since_watered=days))
+                            elif isinstance(flower, Tulip):
+                                st.write(flower.special_feature())
+                            elif isinstance(flower, Lavender):
+                                room = st.slider("Room size (sqm)", 5, 50, 20,
+                                                 key=f"room_{flower.name}_{flower.get_price()}")
+                                st.write(flower.special_feature(room_size_sqm=room))
 
-# ════════════════════════════════════════════
-#  TAB 2 — CART
-# ════════════════════════════════════════════
+# TAB 2 - CART
 with tab2:
     st.subheader("🛒 Your Shopping Cart")
 
     if len(cart) == 0:
         st.info("Your cart is empty — go to the Shop tab to add flowers! 🌸")
     else:
-        st.markdown('<div class="cart-box">', unsafe_allow_html=True)
-
         for flower, qty in cart.items:
             c1, c2, c3, c4 = st.columns([3, 1, 1, 1])
-            with c1:
-                st.write(f"{flower.emoji} **{flower.color} {flower.name}**")
-            with c2:
-                st.write(f"${flower.get_price():.2f} each")
-            with c3:
-                st.write(f"× {qty}")
-            with c4:
-                subtotal = flower.get_price() * qty
-                st.write(f"**${subtotal:.2f}**")
+            with c1: st.write(f"{flower.emoji} **{flower.color} {flower.name}**")
+            with c2: st.write(f"${flower.get_price():.2f} each")
+            with c3: st.write(f"× {qty}")
+            with c4: st.write(f"**${flower.get_price() * qty:.2f}**")
 
             if st.button(f"❌ Remove", key=f"remove_{flower.name}_{flower.color}"):
                 cart.remove(flower.name)
@@ -429,24 +514,18 @@ with tab2:
         with col2:
             if st.button("✅ Checkout (Demo)"):
                 st.balloons()
-                st.success("🎉 Thank you for your order! Your flowers will bloom soon!")
+                st.success("Thank you for your order! Your flowers will bloom soon!")
                 cart.clear()
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
-
-# ════════════════════════════════════════════
-#  TAB 3 — AI ASSISTANT
-# ════════════════════════════════════════════
+# TAB 3 - AI ASSISTANT
 with tab3:
-    st.subheader("🤖 Flora — Your AI Flower Assistant")
-    st.caption("Ask me anything about flowers, care tips, or let me suggest a bouquet!")
+    st.subheader("🤖 Flora — AI Flower Assistant")
+    st.caption("Ask me anything about flowers or let me suggest a bouquet!")
 
-    # ── Bouquet suggester ─────────────────────
     with st.expander("🎁 AI Bouquet Suggester", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
-            occasion = st.selectbox("What's the occasion?", [
+            occasion = st.selectbox("Occasion?", [
                 "Birthday 🎂", "Wedding 💍", "Anniversary ❤️",
                 "Valentine's Day 💕", "Graduation 🎓", "Get Well Soon 🏥",
                 "Mother's Day 🌷", "Just Because 😊"
@@ -454,133 +533,105 @@ with tab3:
         with col2:
             budget = st.slider("Budget ($)", 5.0, 100.0, 25.0, step=5.0)
 
-        if st.button("🌸 Suggest a Bouquet with AI"):
+        if st.button("🌸 Suggest a Bouquet"):
             with st.spinner("Flora is thinking..."):
-                suggestion = get_ai_bouquet(occasion, budget)
-                st.success("🌸 Flora's Bouquet Suggestion:")
-                st.write(suggestion)
+                st.write(get_ai_bouquet(occasion, budget))
 
     st.markdown("---")
-
-    # ── Chat ──────────────────────────────────
     st.markdown("### 💬 Chat with Flora")
 
     for msg in st.session_state.chat_history:
-        role = "🧑 You" if msg["role"] == "user" else "🌸 Flora"
         with st.chat_message(msg["role"]):
-            st.write(f"{msg['content']}")
+            st.write(msg["content"])
 
     user_input = st.chat_input("Ask Flora anything about flowers...")
-
     if user_input:
         with st.chat_message("user"):
             st.write(user_input)
-
-        st.session_state.chat_history.append({
-            "role": "user", "content": user_input
-        })
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
 
         with st.chat_message("assistant"):
             with st.spinner("Flora is thinking..."):
                 reply = ask_flower_ai(user_input, st.session_state.chat_history[:-1])
                 st.write(reply)
-
-        st.session_state.chat_history.append({
-            "role": "assistant", "content": reply
-        })
+        st.session_state.chat_history.append({"role": "assistant", "content": reply})
 
     if st.session_state.chat_history:
         if st.button("🗑️ Clear Chat"):
             st.session_state.chat_history = []
             st.rerun()
 
-
-# ════════════════════════════════════════════
-#  TAB 4 — OOP CONCEPTS
-# ════════════════════════════════════════════
+# TAB 4 - OOP CONCEPTS
 with tab4:
     st.subheader("📚 OOP Concepts Used in This Project")
-    st.caption("This is the educational breakdown for the University of Lodz OOP course.")
 
     concepts = [
         ("🏗️ Classes & Objects",
-         "5 classes: `Flower`, `Rose`, `Sunflower`, `Tulip`, `Lavender`, `Cart`, `FlowerShop`. "
-         "Every flower displayed is an *object* created from a class."),
+         "7 classes total: Flower, Rose, Sunflower, Tulip, Lavender, Cart, FlowerShop. "
+         "Every flower displayed in the shop is an object created from one of these classes."),
 
         ("🔒 Encapsulation",
-         "`__price` is a **private attribute** in `Flower`. "
-         "It can only be read via `get_price()` and changed via `set_price()`. "
-         "Direct access like `flower.__price` is blocked."),
+         "__price is a private attribute in Flower. It cannot be accessed directly from outside "
+         "the class. You must use get_price() to read it and set_price() to change it."),
 
         ("👪 Inheritance",
-         "`Rose`, `Sunflower`, `Tulip`, and `Lavender` all **inherit** from `Flower`. "
-         "They get all parent methods for free and only add their own extras like "
-         "`has_thorns`, `height_cm`, `season`, `scent_level`."),
+         "Rose, Sunflower, Tulip, and Lavender all inherit from Flower using super().__init__(). "
+         "They reuse all parent attributes and only add their own: has_thorns, height_cm, season, scent_level."),
 
         ("🔄 Polymorphism",
-         "`special_feature()` is defined in the parent `Flower` but **overridden** in every "
-         "child class. Same method name — completely different behavior per class. "
-         "You can see this in each flower card's 'Special Feature' section."),
+         "special_feature() is defined in the parent Flower class but overridden in every child. "
+         "Each child runs completely different logic: "
+         "Rose calculates a bulk discount, "
+         "Sunflower calculates a watering schedule based on height, "
+         "Tulip checks the bloom season against the current month, "
+         "Lavender calculates how many plants you need for a room. "
+         "Same method name — four different behaviors."),
 
         ("⚡ super()",
-         "Every child class calls `super().__init__(...)` to **reuse** the parent constructor "
-         "instead of rewriting it. Clean and DRY (Don't Repeat Yourself)."),
+         "Every child class calls super().__init__() to reuse the parent constructor. "
+         "This avoids rewriting the same code in every child class (DRY principle)."),
 
         ("🔮 Magic / Dunder Methods",
-         "`__str__` formats how a flower prints. `__len__` lets `len(cart)` work naturally. "
-         "These are Python's special methods that integrate with built-in functions."),
+         "__str__ controls how a flower prints. __repr__ gives a technical representation. "
+         "__eq__ lets you compare two flowers with ==. __lt__ lets you sort flowers by price. "
+         "__len__ makes len(cart) work on the Cart class."),
 
         ("🧩 Composition",
-         "`Cart` contains a list of `Flower` objects. `FlowerShop` contains a catalog of "
-         "`Flower` objects. Neither inherits — they just *use* flowers. This is composition."),
+         "Cart contains a list of Flower objects. FlowerShop contains a catalog of Flower objects. "
+         "Neither inherits from Flower — they use flowers as components. This is composition."),
 
         ("📌 Class & Static Methods",
-         "`FlowerShop.create_default_shop()` is a **class method** — it creates a shop without "
-         "needing an existing instance. `FlowerShop.care_tip()` is a **static method** — "
-         "it doesn't need `self` or `cls`, just pure logic."),
-
-        ("🤖 AI Integration (Modern Extension)",
-         "The `ask_flower_ai()` and `get_ai_bouquet()` functions connect the OOP system to "
-         "a real AI API (OpenRouter). This shows how classical OOP and modern AI work together "
-         "— the AI assistant uses the same `FlowerShop` class data to give smart suggestions."),
+         "FlowerShop.create_default_shop() is a class method — creates a shop without an existing instance. "
+         "FlowerShop.care_tip() is a static method — pure logic with no need for self or cls."),
     ]
 
     for title, explanation in concepts:
         st.markdown(f"""
         <div class="oop-badge">
-            <strong>{title}</strong><br>
-            {explanation}
+            <strong>{title}</strong><br>{explanation}
         </div>
         """, unsafe_allow_html=True)
         st.write("")
 
     st.markdown("---")
-    st.markdown("### 🗂️ Class Hierarchy Diagram")
+    st.markdown("### 🗂️ Class Hierarchy")
     st.code("""
-Flower  ← Base / Parent Class
-│   ├── name, color, petals, __price (private), emoji, description
-│   ├── get_price(), set_price()          ← encapsulation
-│   ├── special_feature()                 ← overridden (polymorphism)
-│   └── __str__(), to_dict()              ← magic methods
+Flower  (Base Class)
+│   attributes : name, color, petals, __price (private), emoji, description
+│   methods    : get_price(), set_price(), special_feature(), to_dict()
+│   dunder     : __str__, __repr__, __eq__, __lt__
 │
-├── Rose(Flower)
-│       └── + has_thorns
-├── Sunflower(Flower)
-│       └── + height_cm
-├── Tulip(Flower)
-│       └── + season
-└── Lavender(Flower)
-        └── + scent_level
+├── Rose(Flower)        → special_feature() calculates bulk discount
+├── Sunflower(Flower)   → special_feature() calculates watering schedule
+├── Tulip(Flower)       → special_feature() checks bloom season vs current month
+└── Lavender(Flower)    → special_feature() calculates plants needed per room size
 
-Cart                                       ← Composition
-│   └── contains list of (Flower, qty)
-│   └── __len__()
+Cart                    (Composition — contains Flower objects)
+│   __len__() makes len(cart) work naturally
 
-FlowerShop                                 ← Composition
-    └── contains list of Flower objects
-    └── @classmethod create_default_shop()
-    └── @staticmethod care_tip()
+FlowerShop              (Composition — contains Flower catalog)
+    @classmethod  create_default_shop()
+    @staticmethod care_tip()
     """, language="text")
 
-    st.markdown("---")
-    st.info("🎓 **Project by Ndacyayisenga Parfait** — University of Lodz, Poland 🇵🇱 | From Rwanda 🇷🇼")
+    st.info("🎓 Project by Ndacyayisenga Parfait — University of Lodz 🇵🇱 | From Rwanda 🇷🇼")
