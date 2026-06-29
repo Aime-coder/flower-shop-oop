@@ -33,9 +33,13 @@ class Flower:
         if new_price >= 0:
             self.__price = new_price
 
-    def special_feature(self):
-        """Base version - overridden by each child class (polymorphism)."""
-        return f"{self.name} is a beautiful flower."
+    def care_instructions(self):
+        """
+        Returns care instructions for this flower.
+        Overridden by each child class with data-dependent behavior (polymorphism).
+        The base version is a generic fallback.
+        """
+        return f"Keep {self.name} in a bright spot and water regularly."
 
     def to_dict(self):
         return {
@@ -45,7 +49,7 @@ class Flower:
             "price"       : self.__price,
             "emoji"       : self.emoji,
             "description" : self.description,
-            "feature"     : self.special_feature(),
+            "feature"     : self.care_instructions(),
         }
 
     def __str__(self):
@@ -66,8 +70,9 @@ class Flower:
 class Rose(Flower):
     """
     Rose class - inherits from Flower.
-    special_feature() calculates a discount based on quantity ordered.
-    This is real polymorphism: different logic, not just a different string.
+    Extra attribute: has_thorns (bool).
+    care_instructions() gives different handling advice depending on whether
+    the rose has thorns or not. Data drives the behavior.
     """
     def __init__(self, color, price, has_thorns=True):
         super().__init__(
@@ -80,35 +85,34 @@ class Rose(Flower):
         )
         self.has_thorns = has_thorns
 
-    def special_feature(self, quantity=1):
+    def care_instructions(self):
         """
-        Calculates a bulk discount based on quantity.
-        Buy 6+ roses: 10% off. Buy 12+: 20% off.
-        Different logic from Sunflower and Tulip.
+        Care depends on has_thorns.
+        Thorny roses need protective gloves and specific pruning technique.
+        Thornless roses are easier to handle but still need careful watering.
         """
-        price = self.get_price()
-        if quantity >= 12:
-            discount = 0.20
-        elif quantity >= 6:
-            discount = 0.10
+        if self.has_thorns:
+            return (
+                "🧤 Always wear thick gloves when handling — thorns can cause injury. "
+                "Prune at a 45° angle just above a leaf node to encourage new growth. "
+                "Water at the base every 2 days, never wet the leaves to avoid fungus. "
+                "Remove dead petals regularly to promote blooming."
+            )
         else:
-            discount = 0.0
-
-        discounted = price * quantity * (1 - discount)
-        thorn_note = "with thorns" if self.has_thorns else "thornless variety"
-        if discount > 0:
-            return (f"Rose bulk discount: buy {quantity} and get {int(discount*100)}% off! "
-                    f"Total: ${discounted:.2f} instead of ${price * quantity:.2f}. "
-                    f"This is a {thorn_note}.")
-        return (f"No bulk discount yet — buy 6+ roses to save 10%, or 12+ to save 20%. "
-                f"This is a {thorn_note}.")
+            return (
+                "✋ Thornless variety — safe to handle without gloves. "
+                "Still prune at a 45° angle to keep the plant healthy. "
+                "Water at the base every 2 days and place in full sunlight. "
+                "Easier to arrange in bouquets — great for beginners."
+            )
 
 
 class Sunflower(Flower):
     """
     Sunflower class - inherits from Flower.
-    special_feature() calculates how many days until the flower needs watering
-    based on its height (taller sunflowers need more water).
+    Extra attribute: height_cm (int).
+    care_instructions() gives different support and watering advice
+    depending on how tall the sunflower grows.
     """
     def __init__(self, price, height_cm):
         super().__init__(
@@ -119,36 +123,38 @@ class Sunflower(Flower):
             emoji       = "🌻",
             description = f"A bright sunflower standing {height_cm}cm tall, always facing the sun."
         )
-        self.height_cm     = height_cm
-        self._last_watered = 0  # days since last watered
+        self.height_cm = height_cm
 
-    def special_feature(self, days_since_watered=0):
+    def care_instructions(self):
         """
-        Calculates watering schedule based on height.
-        Taller sunflowers (>200cm) need water every 2 days.
-        Shorter ones every 3 days.
-        Returns a specific care action the user should take.
+        Care depends on height_cm.
+        Taller sunflowers need stronger stakes and more frequent watering.
+        Shorter ones are more self-supporting and need less water.
         """
         if self.height_cm > 200:
-            water_every = 2
+            return (
+                f"🪵 At {self.height_cm}cm, this sunflower needs a strong bamboo stake "
+                f"tied at two points to prevent wind damage. "
+                f"Water deeply every 2 days — tall plants have large root systems. "
+                f"Place in full sun for at least 8 hours daily. "
+                f"Fertilize once a week during the growing season."
+            )
         else:
-            water_every = 3
-
-        days_until_water = max(0, water_every - days_since_watered)
-
-        if days_since_watered >= water_every:
-            return (f"⚠️ Water immediately! This {self.height_cm}cm sunflower is overdue. "
-                    f"Tall sunflowers need water every {water_every} days.")
-        return (f"Next watering in {days_until_water} day(s). "
-                f"At {self.height_cm}cm tall, this sunflower needs water every {water_every} days. "
-                f"Sunflowers follow the sun — place near a south-facing window.")
+            return (
+                f"🌱 At {self.height_cm}cm, this sunflower is compact and largely self-supporting. "
+                f"A light stake is enough if needed. "
+                f"Water every 3 days — smaller plants need less moisture. "
+                f"Full sun for 6 hours daily is sufficient. "
+                f"Great for indoor pots or small garden spaces."
+            )
 
 
 class Tulip(Flower):
     """
     Tulip class - inherits from Flower.
-    special_feature() generates a personalized care schedule
-    based on the season the tulip blooms in.
+    Extra attribute: season (str).
+    care_instructions() gives different storage and planting advice
+    depending on which season the tulip is meant to bloom in.
     """
     def __init__(self, color, price, season="Spring"):
         super().__init__(
@@ -161,40 +167,49 @@ class Tulip(Flower):
         )
         self.season = season
 
-    def special_feature(self, current_month=None):
+    def care_instructions(self):
         """
-        Generates a care schedule based on the tulip's bloom season.
-        Spring tulips need cold storage now. Summer tulips need sun.
-        Completely different logic from Rose and Sunflower.
+        Care depends on season.
+        Spring tulips need cold storage before planting.
+        Summer tulips go straight into warm soil.
+        Autumn tulips need planting in late summer.
+        Each season means a completely different preparation routine.
         """
-        import datetime
-        if current_month is None:
-            current_month = datetime.datetime.now().month
-
-        season_months = {
-            "Spring" : [3, 4, 5],
-            "Summer" : [6, 7, 8],
-            "Autumn" : [9, 10, 11],
-            "Winter" : [12, 1, 2],
+        instructions = {
+            "Spring": (
+                "❄️ Spring tulip: plant bulbs in autumn (October–November) "
+                "after storing them at 5–10°C for at least 8 weeks. "
+                "This cold period is essential — without it the bulb will not bloom. "
+                "Plant 15cm deep in well-drained soil and water lightly after planting."
+            ),
+            "Summer": (
+                "☀️ Summer tulip: plant bulbs in spring once the ground warms above 10°C. "
+                "No cold storage needed — these varieties prefer warmth from the start. "
+                "Plant 10cm deep, water every 3 days, and ensure full sun exposure. "
+                "Ideal for outdoor beds and large containers."
+            ),
+            "Autumn": (
+                "🍂 Autumn tulip: plant bulbs in mid-summer (July–August) "
+                "so they establish before the first frost. "
+                "Store bulbs in a cool dry place until planting time. "
+                "Water weekly and protect from heavy rain to prevent bulb rot."
+            ),
+            "Winter": (
+                "🌨️ Winter tulip: a hardy variety that tolerates frost. "
+                "Plant in early autumn and mulch heavily to insulate the bulbs. "
+                "No watering needed in winter — rain is sufficient. "
+                "They will push through snow and bloom in late winter."
+            ),
         }
-
-        bloom_months = season_months.get(self.season, [3, 4, 5])
-
-        if current_month in bloom_months:
-            return (f"🌷 Perfect timing! {self.color} Tulips are in their bloom season ({self.season}). "
-                    f"Keep them in a bright spot and water every 2 days.")
-        else:
-            months_away = min((m - current_month) % 12 for m in bloom_months)
-            return (f"📅 {self.color} Tulips bloom in {self.season} — about {months_away} month(s) away. "
-                    f"Store bulbs in a cool dry place (5–10°C) until then. "
-                    f"Originally from Central Asia, they need a cold rest period.")
+        return instructions.get(self.season, f"Plant in well-drained soil and water regularly.")
 
 
 class Lavender(Flower):
     """
     Lavender class - inherits from Flower.
-    special_feature() calculates aromatherapy benefit score
-    based on scent level and suggests uses.
+    Extra attribute: scent_level (str).
+    care_instructions() gives different watering and pruning advice
+    depending on the intensity of the scent, which reflects the plant's oil content.
     """
     def __init__(self, price, scent_level="Strong"):
         super().__init__(
@@ -207,27 +222,34 @@ class Lavender(Flower):
         )
         self.scent_level = scent_level
 
-    def special_feature(self, room_size_sqm=20):
+    def care_instructions(self):
         """
-        Calculates how many lavender plants are needed for a room
-        based on scent level and room size.
-        Returns a practical recommendation.
+        Care depends on scent_level.
+        Strong-scented lavender has high oil content — it needs drier conditions.
+        Mild-scented lavender is more tolerant of moisture.
+        Light-scented lavender is the most adaptable but needs the most pruning.
         """
-        coverage = {"Strong": 15, "Mild": 8, "Light": 4}
-        sqm_per_plant = coverage.get(self.scent_level, 8)
-        plants_needed = max(1, round(room_size_sqm / sqm_per_plant))
-
-        uses = {
-            "Strong": "sleep aid, anxiety relief, and repelling insects",
-            "Mild"  : "light relaxation and room freshening",
-            "Light" : "subtle decoration and mild calming effect",
-        }
-        use_case = uses.get(self.scent_level, "general wellness")
-
-        return (f"{self.scent_level} scent lavender: you need about {plants_needed} plant(s) "
-                f"for a {room_size_sqm}sqm room. "
-                f"Best used for {use_case}. "
-                f"Lavender loves dry, well-drained soil — do not overwater!")
+        if self.scent_level == "Strong":
+            return (
+                "🪨 Strong scent means high essential oil content — do not overwater. "
+                "Water only when the top 5cm of soil is completely dry (every 10–14 days). "
+                "Plant in sandy, well-drained soil with full sun. "
+                "Prune by one third after flowering to keep the plant compact and maximize oil production."
+            )
+        elif self.scent_level == "Mild":
+            return (
+                "💧 Mild scent variety — slightly more tolerant of moisture than strong varieties. "
+                "Water every 7–10 days, allowing soil to partially dry between waterings. "
+                "Works well in regular garden soil with good drainage. "
+                "Prune lightly after flowering — avoid cutting into old woody stems."
+            )
+        else:
+            return (
+                "🌿 Light scent variety — the most adaptable lavender for beginners. "
+                "Water every 5–7 days and tolerates slightly heavier soil. "
+                "Can grow in partial shade, though full sun produces better fragrance. "
+                "Prune regularly throughout the season to encourage bushy growth."
+            )
 
 
 # CART CLASS - demonstrates composition
@@ -469,20 +491,11 @@ with tab1:
                         with st.expander("💡 Care tip"):
                             st.write(FlowerShop.care_tip(flower.name))
 
-                        with st.expander("✨ Special feature (polymorphism demo)"):
-                            # each flower class runs different logic here - that is polymorphism
-                            if isinstance(flower, Rose):
-                                st.write(flower.special_feature(quantity=qty))
-                            elif isinstance(flower, Sunflower):
-                                days = st.slider("Days since watered", 0, 5, 1,
-                                                 key=f"days_{flower.name}_{flower.get_price()}")
-                                st.write(flower.special_feature(days_since_watered=days))
-                            elif isinstance(flower, Tulip):
-                                st.write(flower.special_feature())
-                            elif isinstance(flower, Lavender):
-                                room = st.slider("Room size (sqm)", 5, 50, 20,
-                                                 key=f"room_{flower.name}_{flower.get_price()}")
-                                st.write(flower.special_feature(room_size_sqm=room))
+                        with st.expander("🌿 Care Instructions (polymorphism)"):
+                            # care_instructions() is defined in Flower but overridden
+                            # in every child class with data-dependent logic.
+                            # The same method call produces different behavior per class.
+                            st.write(flower.care_instructions())
 
 # TAB 2 - CART
 with tab2:
@@ -568,41 +581,50 @@ with tab4:
     concepts = [
         ("🏗️ Classes & Objects",
          "7 classes total: Flower, Rose, Sunflower, Tulip, Lavender, Cart, FlowerShop. "
-         "Every flower displayed in the shop is an object created from one of these classes."),
+         "Every flower displayed in the shop is a real object created from one of these classes."),
 
         ("🔒 Encapsulation",
-         "__price is a private attribute in Flower. It cannot be accessed directly from outside "
-         "the class. You must use get_price() to read it and set_price() to change it."),
+         "__price is a private attribute in the Flower class. "
+         "It cannot be accessed or changed directly from outside the class. "
+         "You must use get_price() to read it and set_price() to modify it. "
+         "This protects the data from accidental or unauthorized changes."),
 
         ("👪 Inheritance",
          "Rose, Sunflower, Tulip, and Lavender all inherit from Flower using super().__init__(). "
-         "They reuse all parent attributes and only add their own: has_thorns, height_cm, season, scent_level."),
+         "They automatically get all parent attributes (name, color, petals, price, emoji) "
+         "and only define their own extras: has_thorns, height_cm, season, scent_level."),
 
-        ("🔄 Polymorphism",
-         "special_feature() is defined in the parent Flower class but overridden in every child. "
-         "Each child runs completely different logic: "
-         "Rose calculates a bulk discount, "
-         "Sunflower calculates a watering schedule based on height, "
-         "Tulip checks the bloom season against the current month, "
-         "Lavender calculates how many plants you need for a room. "
-         "Same method name — four different behaviors."),
+        ("🔄 Polymorphism — care_instructions()",
+         "care_instructions() is defined once in the Flower base class. "
+         "Every child class overrides it with behavior that depends on its own unique data: "
+         "Rose uses has_thorns — thorny roses need gloves and specific pruning; thornless ones do not. "
+         "Sunflower uses height_cm — tall sunflowers (>200cm) need strong stakes and water every 2 days; short ones every 3. "
+         "Tulip uses season — Spring tulips need 8 weeks of cold storage; Summer tulips go straight into warm soil; each season is a different routine. "
+         "Lavender uses scent_level — Strong scent means high oil content and very dry soil; Mild is more tolerant; Light needs the most pruning. "
+         "This is the correct use of polymorphism: one method name, one shared theme (care), "
+         "but each class provides its own data-driven implementation."),
 
         ("⚡ super()",
          "Every child class calls super().__init__() to reuse the parent constructor. "
-         "This avoids rewriting the same code in every child class (DRY principle)."),
+         "This avoids rewriting the same 6 attributes in every child class (DRY principle — Don't Repeat Yourself)."),
 
         ("🔮 Magic / Dunder Methods",
-         "__str__ controls how a flower prints. __repr__ gives a technical representation. "
-         "__eq__ lets you compare two flowers with ==. __lt__ lets you sort flowers by price. "
-         "__len__ makes len(cart) work on the Cart class."),
+         "__str__ controls how a flower prints as a string. "
+         "__repr__ gives a technical developer-friendly representation. "
+         "__eq__ lets you compare two flowers with == based on name and color. "
+         "__lt__ lets you sort a list of flowers by price using sorted(). "
+         "__len__ makes len(cart) work naturally on the Cart class."),
 
         ("🧩 Composition",
          "Cart contains a list of Flower objects. FlowerShop contains a catalog of Flower objects. "
-         "Neither inherits from Flower — they use flowers as components. This is composition."),
+         "Neither Cart nor FlowerShop inherits from Flower — they simply use flowers as components. "
+         "This is composition: building complex objects from simpler ones."),
 
         ("📌 Class & Static Methods",
-         "FlowerShop.create_default_shop() is a class method — creates a shop without an existing instance. "
-         "FlowerShop.care_tip() is a static method — pure logic with no need for self or cls."),
+         "FlowerShop.create_default_shop() is a @classmethod — it creates a complete shop "
+         "without needing an existing instance. "
+         "FlowerShop.care_tip() is a @staticmethod — it contains pure logic with no need "
+         "for self or cls. Both are called directly on the class, not on an object."),
     ]
 
     for title, explanation in concepts:
@@ -618,20 +640,39 @@ with tab4:
     st.code("""
 Flower  (Base Class)
 │   attributes : name, color, petals, __price (private), emoji, description
-│   methods    : get_price(), set_price(), special_feature(), to_dict()
+│   methods    : get_price(), set_price(), care_instructions(), to_dict()
 │   dunder     : __str__, __repr__, __eq__, __lt__
 │
-├── Rose(Flower)        → special_feature() calculates bulk discount
-├── Sunflower(Flower)   → special_feature() calculates watering schedule
-├── Tulip(Flower)       → special_feature() checks bloom season vs current month
-└── Lavender(Flower)    → special_feature() calculates plants needed per room size
+│   care_instructions() — overridden in every child (polymorphism)
+│   Same theme: how to care for the flower
+│   Different behavior: driven by each class's own data
+│
+├── Rose(Flower)
+│       data used : has_thorns (bool)
+│       care      : thorny → gloves + specific pruning technique
+│                   thornless → safe handling + standard pruning
+│
+├── Sunflower(Flower)
+│       data used : height_cm (int)
+│       care      : >200cm → strong stake + water every 2 days
+│                   ≤200cm → light stake + water every 3 days
+│
+├── Tulip(Flower)
+│       data used : season (str)
+│       care      : Spring → 8 weeks cold storage before planting
+│                   Summer → plant in warm soil, no cold needed
+│                   Autumn → plant in mid-summer, protect from frost
+│                   Winter → mulch heavily, no extra watering
+│
+└── Lavender(Flower)
+        data used : scent_level (str)
+        care      : Strong → very dry soil, prune 1/3 after flowering
+                    Mild   → moderate watering, light pruning
+                    Light  → most adaptable, regular pruning
 
-Cart                    (Composition — contains Flower objects)
-│   __len__() makes len(cart) work naturally
-
-FlowerShop              (Composition — contains Flower catalog)
-    @classmethod  create_default_shop()
-    @staticmethod care_tip()
+Cart         (Composition — contains Flower objects)  __len__()
+FlowerShop   (Composition — contains Flower catalog)  @classmethod  @staticmethod
     """, language="text")
 
     st.info("🎓 Project by Ndacyayisenga Parfait — University of Lodz 🇵🇱 | From Rwanda 🇷🇼")
+
